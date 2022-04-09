@@ -11,7 +11,7 @@ import pickle
 import tweepy
 import schedule 
 
-#keys obtained from a twitter developer app
+#keys obtained from a twitter developer account
 consumer_key = ""
 consumer_secret = ""
 access_token = ""
@@ -24,6 +24,7 @@ def twitter_status(tweet):
                        access_token=access_token,
                        access_token_secret=access_token_secret)
     response = client.create_tweet(text=tweet)
+    print(f"[tweet] {tweet}")
 
 def create_fresh_feed():
     rss_self = "https://getwishlisted.xyz/flipstarters.xml"
@@ -86,7 +87,6 @@ def db_delete(flip):
     con.close()
 
 def db_add(flips):
-    print("db_add")
     #create db if not exists
     con = sqlite3.connect('flips.db')
     cur = con.cursor()
@@ -99,7 +99,6 @@ def db_add(flips):
     for flip in flips:
         cur.execute('SELECT * FROM flips WHERE title = ?',[flip["title"]])
         rows = len(cur.fetchall())
-        print(f"rows = {rows}")
         if not rows:
             #add new flipstarter to rss feed
             sql = """INSERT INTO flips(title,api_url,url)
@@ -129,7 +128,6 @@ def get_active():
             active_flips.append(data)
         number -= 1
         counter -= 1
-    pprint.pprint(active_flips)
     new_flips = []
     for x in active_flips:
         #check url is online and actually running
@@ -146,8 +144,6 @@ def get_active():
                 continue
         except:
             pass
-    print("flips active")
-    pprint.pprint(new_flips)
     db_add(new_flips)
 
 def check_flips():
@@ -158,21 +154,17 @@ def check_flips():
     rows = len(flips)
     if rows == 0:
         return
-    pprint.pprint(flips)
     for flip in flips:
         try:
             data = requests.get(flip[1])
             flip_data = data.json()["campaign"]
-            pprint.pprint(flip_data)
             #check if funded
             if flip_data["fullfillment_id"]:
                 #funded
-                print("FUNDED")
                 is_funded(flip)
                 continue
             #check if expired
             if int(flip_data["expires"]) <= int(time.time()):
-                print("Expired!")
                 is_expired(flip)
                 continue
             #check if offline - todo - check resp code not = 200
@@ -180,11 +172,8 @@ def check_flips():
             raise e
 
 def schedule_main():
-    schedule.every(1).minutes.do(get_active)
-    schedule.every(1).minutes.do(check_flips)
-    #schedule.every().day.at("13:37").do(get_active)
-    
-
+    schedule.every(360).minutes.do(get_active)
+    schedule.every(15).minutes.do(check_flips)
     while 1:
         schedule.run_pending()
         time.sleep(1)
