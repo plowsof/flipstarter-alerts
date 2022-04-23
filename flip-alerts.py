@@ -82,7 +82,8 @@ def is_expired(flip):
 
 def db_delete(flip):
     con = sqlite3.connect('flips.db')
-    cur.execute('DELETE FROM flips WHERE title=?',[flip['title']])
+    cur = con.cursor()
+    cur.execute('DELETE FROM flips WHERE title=?',[flip[0])
     con.commit()
     con.close()
 
